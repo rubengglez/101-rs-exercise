@@ -18,16 +18,17 @@
 //  - add a method "has_room" so that "queue.has_room()" is true if and only if writing to the queue will succeed
 //  - add a method "peek" so that "queue.peek()" returns the same thing as "queue.read()", but leaves the element in the queue
 
+#[derive(Debug)]
 struct RingBuffer {
-    data: [u8; 16],
+    data: Box<[u8]>,
     start: usize,
     end: usize,
 }
 
 impl RingBuffer {
-    fn new() -> RingBuffer {
+    fn new(size: usize) -> RingBuffer {
         RingBuffer {
-            data: [0; 16],
+            data: make_box(size),
             start: 0,
             end: 0,
         }
@@ -37,7 +38,22 @@ impl RingBuffer {
     /// it returns None if the queue was empty
 
     fn read(&mut self) -> Option<u8> {
-        todo!()
+        if self.data[self.start] == 0 {
+            return None;
+        }
+        let result = self.data[self.start];
+        self.data[self.start] = 0;
+        self.start = (self.start + 1) % self.data.len();
+        Some(result)
+    }
+
+    fn peak(&mut self) -> Option<u8> {
+        if self.start == self.end {
+            return None;
+        }
+        let result = self.data[self.start];
+        self.start = (self.start + 1) % self.data.len();
+        Some(result)
     }
 
     /// This function tries to put `value` on the queue; and returns true if this succeeds
@@ -46,6 +62,7 @@ impl RingBuffer {
     fn write(&mut self, value: u8) -> bool {
         self.data[self.end] = value;
         let pos = (self.end + 1) % self.data.len();
+        self.end = pos;
         if pos == self.start {
             // the buffer can hold no more new data
             false
@@ -54,6 +71,10 @@ impl RingBuffer {
 
             true
         }
+    }
+
+    fn has_room(&self) -> bool {
+        self.data[self.end] == 0
     }
 }
 
@@ -75,13 +96,20 @@ impl Iterator for RingBuffer {
 }
 
 fn main() {
-    let mut queue = RingBuffer::new();
+    let mut queue = RingBuffer::new(6);
     assert!(queue.write(1));
     assert!(queue.write(2));
     assert!(queue.write(3));
     assert!(queue.write(4));
     assert!(queue.write(5));
-    for elem in queue {
+    queue.write(6);
+    assert_eq!(queue.has_room(), false);
+    for elem in &mut queue {
         println!("{elem}");
     }
+    assert!(queue.write(5));
+    assert!(queue.write(6));
+    assert!(queue.write(7));
+    assert_eq!(queue.peak(), Some(5));
+    assert_eq!(queue.has_room(), true);
 }
