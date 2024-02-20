@@ -8,6 +8,23 @@ pub enum LocalStorageVec<T, const N: usize> {
     Heap(Vec<T>),
 }
 
+impl<T, const N: usize> LocalStorageVec<T, N>
+where
+    T: Copy + Default,
+{
+    fn new() -> LocalStorageVec<T, N> {
+        let buf: [T; N] = [T::default(); N];
+        LocalStorageVec::Stack { buf, len: 0 }
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            LocalStorageVec::Stack { buf: _, len } => len.to_owned(),
+            LocalStorageVec::Heap(v) => v.len(),
+        }
+    }
+}
+
 // **Below `From` implementation is used in the tests and are therefore given. However,
 // you should have a thorough look at it as they contain various new concepts.**
 // This implementation is generic not only over the type `T`, but also over the
@@ -57,9 +74,7 @@ impl<T, const M: usize> From<Vec<T>> for LocalStorageVec<T, M> {
 impl<T, const M: usize> AsRef<[T]> for LocalStorageVec<T, M> {
     fn as_ref(&self) -> &[T] {
         match self {
-            LocalStorageVec::Stack { buf, len } => {
-                &buf[0..len.to_owned()]
-            }
+            LocalStorageVec::Stack { buf, len } => &buf[0..len.to_owned()],
             LocalStorageVec::Heap(v) => v.as_ref(),
         }
     }
@@ -67,10 +82,8 @@ impl<T, const M: usize> AsRef<[T]> for LocalStorageVec<T, M> {
 
 impl<T, const M: usize> AsMut<[T]> for LocalStorageVec<T, M> {
     fn as_mut(&mut self) -> &mut [T] {
-         match self {
-            LocalStorageVec::Stack { buf, len} => {
-                buf[0..len.to_owned()].as_mut()
-            }
+        match self {
+            LocalStorageVec::Stack { buf, len } => buf[0..len.to_owned()].as_mut(),
             LocalStorageVec::Heap(v) => v.as_mut(),
         }
     }
@@ -142,35 +155,35 @@ mod test {
     }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_constructs() {
-    //     let vec: LocalStorageVec<usize, 10> = LocalStorageVec::new();
-    //     // Assert that the call to `new` indeed yields a `Stack` variant with zero length
-    //     assert!(matches!(vec, LocalStorageVec::Stack { buf: _, len: 0 }));
-    // }
+    #[test]
+    fn it_constructs() {
+        let vec: LocalStorageVec<usize, 10> = LocalStorageVec::new();
+        // Assert that the call to `new` indeed yields a `Stack` variant with zero length
+        assert!(matches!(vec, LocalStorageVec::Stack { buf: _, len: 0 }));
+    }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_lens() {
-    //     let vec: LocalStorageVec<_, 3> = LocalStorageVec::from([0, 1, 2]);
-    //     assert_eq!(vec.len(), 3);
-    //     let vec: LocalStorageVec<_, 2> = LocalStorageVec::from([0, 1, 2]);
-    //     assert_eq!(vec.len(), 3);
-    // }
+    #[test]
+    fn it_lens() {
+        let vec: LocalStorageVec<_, 3> = LocalStorageVec::from([0, 1, 2]);
+        assert_eq!(vec.len(), 3);
+        let vec: LocalStorageVec<_, 2> = LocalStorageVec::from([0, 1, 2]);
+        assert_eq!(vec.len(), 3);
+    }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_pushes() {
-    //     let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::new();
-    //     for value in 0..128 {
-    //         vec.push(value);
-    //     }
-    //     assert!(matches!(vec, LocalStorageVec::Stack { len: 128, .. }));
-    //     for value in 128..256 {
-    //         vec.push(value);
-    //     }
-    //     assert!(matches!(vec, LocalStorageVec::Heap(v) if v.len() == 256))
-    // }
+    #[test]
+    fn it_pushes() {
+        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::new();
+        for value in 0..128 {
+            vec.push(value);
+        }
+        assert!(matches!(vec, LocalStorageVec::Stack { len: 128, .. }));
+        for value in 128..256 {
+            vec.push(value);
+        }
+        assert!(matches!(vec, LocalStorageVec::Heap(v) if v.len() == 256))
+    }
 
     // Uncomment me for part D
     // #[test]
