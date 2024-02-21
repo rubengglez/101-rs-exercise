@@ -23,6 +23,40 @@ where
             LocalStorageVec::Heap(v) => v.len(),
         }
     }
+
+    fn push(&mut self, value: T) {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if len.to_owned() == N {
+                    let mut vec = buf.to_vec();
+                    vec.push(value);
+                    *self = LocalStorageVec::Heap(vec);
+                } else {
+                    buf[len.to_owned()] = value;
+                    *len += 1;
+                }
+            }
+            LocalStorageVec::Heap(v) => {
+                v.push(value);
+            }
+        }
+    }
+
+    fn pop(&mut self) -> Option<T> {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if len.to_owned() == 0 {
+                    return None;
+                }
+
+                let value = buf[0];
+                *len -= 1;
+
+                Some(value)
+            }
+            LocalStorageVec::Heap(v) => v.pop(),
+        }
+    }
 }
 
 // **Below `From` implementation is used in the tests and are therefore given. However,
@@ -186,50 +220,50 @@ mod test {
     }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_pops() {
-    //     let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128]);
-    //     for _ in 0..128 {
-    //         assert_eq!(vec.pop(), Some(0))
-    //     }
-    //     assert_eq!(vec.pop(), None);
-    //
-    //     let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 256]);
-    //     for _ in 0..256 {
-    //         assert_eq!(vec.pop(), Some(0))
-    //     }
-    //     assert_eq!(vec.pop(), None);
-    //
-    //     let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![0; 256]);
-    //     for _ in 0..256 {
-    //         assert_eq!(vec.pop(), Some(0))
-    //     }
-    //     assert_eq!(vec.pop(), None);
-    // }
+    #[test]
+    fn it_pops() {
+        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128]);
+        for _ in 0..128 {
+            assert_eq!(vec.pop(), Some(0))
+        }
+        assert_eq!(vec.pop(), None);
+
+        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 256]);
+        for _ in 0..256 {
+            assert_eq!(vec.pop(), Some(0))
+        }
+        assert_eq!(vec.pop(), None);
+
+        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![0; 256]);
+        for _ in 0..256 {
+            assert_eq!(vec.pop(), Some(0))
+        }
+        assert_eq!(vec.pop(), None);
+    }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_inserts() {
-    //     let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
-    //     vec.insert(1, 3);
-    //     assert!(matches!(
-    //         vec,
-    //         LocalStorageVec::Stack {
-    //             buf: [0, 3, 1, 2],
-    //             len: 4
-    //         }
-    //     ));
-    //
-    //     let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2, 3]);
-    //     vec.insert(1, 3);
-    //     assert!(matches!(vec, LocalStorageVec::Heap { .. }));
-    //     assert_eq!(vec.as_ref(), &[0, 3, 1, 2, 3]);
-    //
-    //     let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2, 3, 4]);
-    //     vec.insert(1, 3);
-    //     assert!(matches!(vec, LocalStorageVec::Heap { .. }));
-    //     assert_eq!(vec.as_ref(), &[0, 3, 1, 2, 3, 4])
-    // }
+    #[test]
+    fn it_inserts() {
+        let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
+        vec.insert(1, 3);
+        assert!(matches!(
+            vec,
+            LocalStorageVec::Stack {
+                buf: [0, 3, 1, 2],
+                len: 4
+            }
+        ));
+
+        let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2, 3]);
+        vec.insert(1, 3);
+        assert!(matches!(vec, LocalStorageVec::Heap { .. }));
+        assert_eq!(vec.as_ref(), &[0, 3, 1, 2, 3]);
+
+        let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2, 3, 4]);
+        vec.insert(1, 3);
+        assert!(matches!(vec, LocalStorageVec::Heap { .. }));
+        assert_eq!(vec.as_ref(), &[0, 3, 1, 2, 3, 4])
+    }
 
     // Uncomment me for part D
     // #[test]
