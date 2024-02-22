@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Formatter};
+
 /// A growable, generic list that resides on the stack if it's small,
 /// but is moved to the heap to grow larger if needed.
 /// This list is generic over the items it contains as well as the
@@ -7,6 +9,15 @@ pub enum LocalStorageVec<T, const N: usize> {
     Stack { buf: [T; N], len: usize },
     Heap(Vec<T>),
 }
+
+/* impl<T: Sized, const N: usize> Debug for LocalStorageVec<T, N> {
+    fn fmt(&self, format: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            LocalStorageVec::Stack { buf, len } => buf.,
+            LocalStorageVec::Heap(_) => todo!(),
+        }
+    }
+} */
 
 impl<T, const N: usize> LocalStorageVec<T, N>
 where
@@ -49,12 +60,44 @@ where
                     return None;
                 }
 
+                println!("------ pop antes {:?}", buf.len());
+
                 let value = buf[0];
                 *len -= 1;
+                println!("------ pop antes {:?}", buf.len());
 
                 Some(value)
             }
             LocalStorageVec::Heap(v) => v.pop(),
+        }
+    }
+
+    fn insert(&mut self, index: usize, value: T) {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if len.to_owned() == N {
+                    let mut vec = buf.to_vec();
+                    vec.insert(index, value);
+                    *self = LocalStorageVec::Heap(vec);
+                } else {
+                    buf[len.to_owned()] = value;
+                    let mut new_buf = [T::default(); N];
+                    for i in 0..index {
+                        new_buf[i] = buf[i];
+                    }
+                    new_buf[index] = value;
+
+                    let mut new_index = index + 1;
+                    for i in index..len.to_owned() {
+                        new_buf[new_index] = buf[i];
+                        new_index += 1;
+                    }
+
+                    *buf = new_buf;
+                    *len += 1;
+                }
+            }
+            LocalStorageVec::Heap(v) => v.insert(index, value),
         }
     }
 }
@@ -122,10 +165,6 @@ impl<T, const M: usize> AsMut<[T]> for LocalStorageVec<T, M> {
         }
     }
 }
-
-/* impl AsMut<T, const M: usize> for LocalStorageVec<T, M> {
-    fn as_ref(&self) -> &T;
-} */
 
 #[cfg(test)]
 mod test {
