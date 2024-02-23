@@ -1,10 +1,9 @@
-use std::fmt::{Debug, Formatter};
-
 /// A growable, generic list that resides on the stack if it's small,
 /// but is moved to the heap to grow larger if needed.
 /// This list is generic over the items it contains as well as the
 /// size of its buffer if it's on the stack.
 
+#[derive(Debug)]
 pub enum LocalStorageVec<T, const N: usize> {
     Stack { buf: [T; N], len: usize },
     Heap(Vec<T>),
@@ -60,12 +59,8 @@ where
                     return None;
                 }
 
-                println!("------ pop antes {:?}", buf.len());
-
                 let value = buf[0];
                 *len -= 1;
-                println!("------ pop antes {:?}", buf.len());
-
                 Some(value)
             }
             LocalStorageVec::Heap(v) => v.pop(),
@@ -98,6 +93,24 @@ where
                 }
             }
             LocalStorageVec::Heap(v) => v.insert(index, value),
+        }
+    }
+
+    fn remove(&mut self, index: usize) -> T {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                let value = buf[index];
+                let mut vec = buf.to_vec();
+                vec.remove(index);
+                vec.push(T::default());
+                *len -= 1;
+                *buf = vec.try_into().unwrap_or_else(|v: Vec<T>| {
+                    panic!("Expected a Vec of length {} but it was {}", N, v.len())
+                });
+
+                value
+            }
+            LocalStorageVec::Heap(v) => v.remove(index),
         }
     }
 }
@@ -305,26 +318,26 @@ mod test {
     }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_removes() {
-    //     let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
-    //     let elem = vec.remove(1);
-    //     dbg!(&vec);
-    //     assert!(matches!(
-    //         vec,
-    //         LocalStorageVec::Stack {
-    //             buf: [0, 2, _, _],
-    //             len: 2
-    //         }
-    //     ));
-    //     assert_eq!(elem, 1);
-    //
-    //     let mut vec: LocalStorageVec<_, 2> = LocalStorageVec::from([0, 1, 2]);
-    //     let elem = vec.remove(1);
-    //     assert!(matches!(vec, LocalStorageVec::Heap(..)));
-    //     assert_eq!(vec.as_ref(), &[0, 2]);
-    //     assert_eq!(elem, 1);
-    // }
+    #[test]
+    fn it_removes() {
+        let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
+        let elem = vec.remove(1);
+        dbg!(&vec);
+        assert!(matches!(
+            vec,
+            LocalStorageVec::Stack {
+                buf: [0, 2, _, _],
+                len: 2
+            }
+        ));
+        assert_eq!(elem, 1);
+
+        let mut vec: LocalStorageVec<_, 2> = LocalStorageVec::from([0, 1, 2]);
+        let elem = vec.remove(1);
+        assert!(matches!(vec, LocalStorageVec::Heap(..)));
+        assert_eq!(vec.as_ref(), &[0, 2]);
+        assert_eq!(elem, 1);
+    }
 
     // Uncomment me for part D
     // #[test]
