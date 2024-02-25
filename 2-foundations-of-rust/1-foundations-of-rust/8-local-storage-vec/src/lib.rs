@@ -9,15 +9,6 @@ pub enum LocalStorageVec<T, const N: usize> {
     Heap(Vec<T>),
 }
 
-/* impl<T: Sized, const N: usize> Debug for LocalStorageVec<T, N> {
-    fn fmt(&self, format: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            LocalStorageVec::Stack { buf, len } => buf.,
-            LocalStorageVec::Heap(_) => todo!(),
-        }
-    }
-} */
-
 impl<T, const N: usize> LocalStorageVec<T, N>
 where
     T: Copy + Default,
@@ -113,6 +104,16 @@ where
             LocalStorageVec::Heap(v) => v.remove(index),
         }
     }
+
+    fn clear(&mut self) {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                *len = 0;
+                *buf = [T::default(); N];
+            }
+            LocalStorageVec::Heap(v) => v.clear(),
+        }
+    }
 }
 
 // **Below `From` implementation is used in the tests and are therefore given. However,
@@ -158,6 +159,38 @@ where
 impl<T, const M: usize> From<Vec<T>> for LocalStorageVec<T, M> {
     fn from(vec: Vec<T>) -> Self {
         Self::Heap(Vec::from(vec))
+    }
+}
+
+pub struct LocalStorageVecIter<T, const N: usize> {
+    vec: LocalStorageVec<T, N>,
+    counter: usize,
+}
+
+impl<T, const N: usize> Iterator for LocalStorageVecIter<T, N>
+where
+    T: Copy + Default,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.vec.pop()
+    }
+}
+
+impl<T, const N: usize> IntoIterator for LocalStorageVec<T, N>
+where
+    T: Copy + Default,
+{
+    type Item = T;
+
+    type IntoIter = LocalStorageVecIter<Self::Item, N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LocalStorageVecIter {
+            vec: self,
+            counter: 0,
+        }
     }
 }
 
@@ -222,7 +255,6 @@ mod test {
         assert!(matches!(vec, LocalStorageVec::Heap(_)));
     }
 
-    // Uncomment me for part C
     #[test]
     fn it_as_refs() {
         let vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
@@ -240,7 +272,6 @@ mod test {
         assert!(slice_mut.len() == 128);
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_constructs() {
         let vec: LocalStorageVec<usize, 10> = LocalStorageVec::new();
@@ -248,7 +279,6 @@ mod test {
         assert!(matches!(vec, LocalStorageVec::Stack { buf: _, len: 0 }));
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_lens() {
         let vec: LocalStorageVec<_, 3> = LocalStorageVec::from([0, 1, 2]);
@@ -257,7 +287,6 @@ mod test {
         assert_eq!(vec.len(), 3);
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_pushes() {
         let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::new();
@@ -271,7 +300,6 @@ mod test {
         assert!(matches!(vec, LocalStorageVec::Heap(v) if v.len() == 256))
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_pops() {
         let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128]);
@@ -293,7 +321,6 @@ mod test {
         assert_eq!(vec.pop(), None);
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_inserts() {
         let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
@@ -317,7 +344,6 @@ mod test {
         assert_eq!(vec.as_ref(), &[0, 3, 1, 2, 3, 4])
     }
 
-    // Uncomment me for part D
     #[test]
     fn it_removes() {
         let mut vec: LocalStorageVec<_, 4> = LocalStorageVec::from([0, 1, 2]);
@@ -339,47 +365,44 @@ mod test {
         assert_eq!(elem, 1);
     }
 
-    // Uncomment me for part D
-    // #[test]
-    // fn it_clears() {
-    //     let mut vec: LocalStorageVec<_, 10> = LocalStorageVec::from([0, 1, 2, 3]);
-    //     assert!(matches!(vec, LocalStorageVec::Stack { buf: _, len: 4 }));
-    //     vec.clear();
-    //     assert_eq!(vec.len(), 0);
-    //
-    //     let mut vec: LocalStorageVec<_, 3> = LocalStorageVec::from([0, 1, 2, 3]);
-    //     assert!(matches!(vec, LocalStorageVec::Heap(_)));
-    //     vec.clear();
-    //     assert_eq!(vec.len(), 0);
-    // }
+    #[test]
+    fn it_clears() {
+        let mut vec: LocalStorageVec<_, 10> = LocalStorageVec::from([0, 1, 2, 3]);
+        assert!(matches!(vec, LocalStorageVec::Stack { buf: _, len: 4 }));
+        vec.clear();
+        assert_eq!(vec.len(), 0);
 
-    // Uncomment me for part E
-    // #[test]
-    // fn it_iters() {
-    //     let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 32]);
-    //     let mut iter = vec.into_iter();
-    //     for item in &mut iter {
-    //         assert_eq!(item, 0);
-    //     }
-    //     assert_eq!(iter.next(), None);
-    //
-    //     let vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![0; 128]);
-    //     let mut iter = vec.into_iter();
-    //     for item in &mut iter {
-    //         assert_eq!(item, 0);
-    //     }
-    //     assert_eq!(iter.next(), None);
-    // }
+        let mut vec: LocalStorageVec<_, 3> = LocalStorageVec::from([0, 1, 2, 3]);
+        assert!(matches!(vec, LocalStorageVec::Heap(_)));
+        vec.clear();
+        assert_eq!(vec.len(), 0);
+    }
 
-    // Uncomment me for part F
-    // #[test]
-    // fn it_indexes() {
-    //     let vec: LocalStorageVec<i32, 10> = LocalStorageVec::from([0, 1, 2, 3, 4, 5]);
-    //     assert_eq!(vec[1], 1);
-    //     assert_eq!(vec[..2], [0, 1]);
-    //     assert_eq!(vec[4..], [4, 5]);
-    //     assert_eq!(vec[1..3], [1, 2]);
-    // }
+    #[test]
+    fn it_iters() {
+        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 32]);
+        let mut iter = vec.into_iter();
+        for item in &mut iter {
+            assert_eq!(item, 0);
+        }
+        assert_eq!(iter.next(), None);
+
+        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![0; 128]);
+        let mut iter = vec.into_iter();
+        for item in &mut iter {
+            assert_eq!(item, 0);
+        }
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn it_indexes() {
+        let vec: LocalStorageVec<i32, 10> = LocalStorageVec::from([0, 1, 2, 3, 4, 5]);
+        assert_eq!(vec[1], 1);
+        assert_eq!(vec[..2], [0, 1]);
+        assert_eq!(vec[4..], [4, 5]);
+        assert_eq!(vec[1..3], [1, 2]);
+    }
 
     // Uncomment me for part H
     // #[test]
