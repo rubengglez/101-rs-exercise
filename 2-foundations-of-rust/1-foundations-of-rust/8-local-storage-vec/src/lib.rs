@@ -1,3 +1,5 @@
+use std::ops::{Index, Range, RangeFrom, RangeTo};
+
 /// A growable, generic list that resides on the stack if it's small,
 /// but is moved to the heap to grow larger if needed.
 /// This list is generic over the items it contains as well as the
@@ -211,6 +213,42 @@ impl<T, const M: usize> AsMut<[T]> for LocalStorageVec<T, M> {
         }
     }
 }
+
+impl<T, const N: usize> Index<usize> for LocalStorageVec<T, N> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+       match self {
+            LocalStorageVec::Stack { buf, len } => &buf[index],
+            LocalStorageVec::Heap(v) => v.index(index),
+        }
+    }
+}
+
+impl<T, const N: usize> Index<RangeTo<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, range: RangeTo<usize>) -> &Self::Output {
+        self.as_ref().get(0..range.end).unwrap()
+    }
+}
+
+impl<T, const N: usize> Index<RangeFrom<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, range: RangeFrom<usize>) -> &Self::Output {
+        self.as_ref().get(range.start..).unwrap()
+    }
+}
+
+impl<T, const N: usize> Index<Range<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, range: Range<usize>) -> &Self::Output {
+        self.as_ref().get(range.start..range.end).unwrap()
+    }
+}
+
 
 #[cfg(test)]
 mod test {
