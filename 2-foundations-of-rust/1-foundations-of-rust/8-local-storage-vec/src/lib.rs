@@ -118,6 +118,16 @@ where
     }
 }
 
+impl<T, const N: usize> LocalStorageVec<T, N> {
+    pub fn iter(&self) -> LocalStorageVecRefIter<T, N> {
+        LocalStorageVecRefIter {
+            vec: self,
+            counter: 0,
+            max_size: self.as_ref().len(),
+        }
+    }
+}
+
 // **Below `From` implementation is used in the tests and are therefore given. However,
 // you should have a thorough look at it as they contain various new concepts.**
 // This implementation is generic not only over the type `T`, but also over the
@@ -180,6 +190,25 @@ where
     }
 }
 
+pub struct LocalStorageVecRefIter<'a, T, const N: usize> {
+    vec: &'a LocalStorageVec<T, N>,
+    max_size: usize,
+    counter: usize,
+}
+
+impl<'a, T, const N: usize> Iterator for LocalStorageVecRefIter<'a, T, N> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let previous = self.counter;
+        self.counter += 1;
+        if previous == self.max_size {
+            return None;
+        }
+        Some(&self.vec[previous])
+    }
+}
+
 impl<T, const N: usize> IntoIterator for LocalStorageVec<T, N>
 where
     T: Copy + Default,
@@ -218,7 +247,7 @@ impl<T, const N: usize> Index<usize> for LocalStorageVec<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-       match self {
+        match self {
             LocalStorageVec::Stack { buf, len } => &buf[index],
             LocalStorageVec::Heap(v) => v.index(index),
         }
@@ -248,7 +277,6 @@ impl<T, const N: usize> Index<Range<usize>> for LocalStorageVec<T, N> {
         self.as_ref().get(range.start..range.end).unwrap()
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -442,22 +470,21 @@ mod test {
         assert_eq!(vec[1..3], [1, 2]);
     }
 
-    // Uncomment me for part H
-    // #[test]
-    // fn it_borrowing_iters() {
-    //     let vec: LocalStorageVec<String, 10> = LocalStorageVec::from([
-    //         "0".to_owned(),
-    //         "1".to_owned(),
-    //         "2".to_owned(),
-    //         "3".to_owned(),
-    //         "4".to_owned(),
-    //         "5".to_owned(),
-    //     ]);
-    //     let iter = vec.iter();
-    //     for _ in iter {}
-    //     // This requires the `vec` not to be consumed by the call to `iter()`
-    //     drop(vec);
-    // }
+    #[test]
+    fn it_borrowing_iters() {
+        let vec: LocalStorageVec<String, 10> = LocalStorageVec::from([
+            "0".to_owned(),
+            "1".to_owned(),
+            "2".to_owned(),
+            "3".to_owned(),
+            "4".to_owned(),
+            "5".to_owned(),
+        ]);
+        let iter = vec.iter();
+        for _ in iter {}
+        // This requires the `vec` not to be consumed by the call to `iter()`
+        drop(vec);
+    }
 
     // Uncomment me for part J
     // #[test]
