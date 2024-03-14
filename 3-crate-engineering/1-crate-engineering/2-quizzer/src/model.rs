@@ -1,13 +1,14 @@
 use crate::errors::Errors;
 use anyhow::{Ok, Result};
+use serde::{Deserialize, Serialize};
 
 const MAX_NUMBER_AWSWERS: u8 = 4;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Question {
-    question: String,
-    answers: Vec<String>,
-    right: u8,
+    pub question: String,
+    pub answers: Vec<String>,
+    pub right: u8,
 }
 
 impl Question {
@@ -18,9 +19,9 @@ impl Question {
         }
     }
 
-		fn is_completed(&self) -> bool {
-			self.answers.len() == MAX_NUMBER_AWSWERS.into()
-		}
+    fn is_completed(&self) -> bool {
+        self.answers.len() == MAX_NUMBER_AWSWERS.into()
+    }
 
     fn add_wrong_answer(&mut self, question: String) -> Result<()> {
         self.assert_max_not_reached()?;
