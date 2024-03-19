@@ -12,30 +12,30 @@ pub struct Question {
 }
 
 impl Question {
-    fn new(question: String) -> Self {
+    pub fn new(question: String) -> Self {
         Self {
             question,
             ..Default::default()
         }
     }
 
-    fn is_completed(&self) -> bool {
-        self.answers.len() == MAX_NUMBER_AWSWERS.into()
-    }
-
-    fn add_wrong_answer(&mut self, question: String) -> Result<()> {
+    pub fn add_answer(&mut self, question: String) -> Result<()> {
         self.assert_max_not_reached()?;
         self.answers.push(question);
         Ok(())
     }
 
-    fn add_right_answer(&mut self, question: String) -> Result<()> {
+    pub fn set_right_answer(&mut self, index: u8) -> Result<()> {
         if self.right != Default::default() {
             return Err(Errors::AlreadyRightAnswer.into());
         }
-        self.answers.push(question);
+        self.right = index;
 
         Ok(())
+    }
+
+    fn is_completed(&self) -> bool {
+        self.answers.len() == MAX_NUMBER_AWSWERS.into()
     }
 
     fn assert_max_not_reached(&self) -> Result<()> {

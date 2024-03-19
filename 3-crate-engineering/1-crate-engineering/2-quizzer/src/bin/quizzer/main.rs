@@ -1,4 +1,4 @@
-use std::io::{self, stdin, Read};
+use std::io::{self};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -21,29 +21,27 @@ enum Commands {
 
 fn ask_questions_and_show_result(questions: Vec<Question>) -> Result<()> {
     let mut right_answers = 0;
-    println!();
     for question in questions {
-        println!("{}", question.question);
+        println!();
+        println!("Question: {}", question.question);
         println!();
         println!("The possible answers are:");
         for (i, answer) in question.answers.iter().enumerate() {
-            println!("{}. --- {}", i, answer);
+            println!("{}. {}", i, answer);
         }
 
         println!();
         println!("Write the number of the answer: ");
-        let mut buffer :[u8; 1] = [0; 1];
-        let mut stdin = io::stdin(); // We get `Stdin` here.
-        stdin.read_exact(&mut buffer)?;
+        let mut user_input = String::new();
+        let stdin = io::stdin(); // We get `Stdin` here.
+        stdin.read_line(&mut user_input)?;
 
-        let read = std::str::from_utf8(&buffer)?;
-        if question.right.to_string() == read.to_owned() {
+        if question.right.to_string() == user_input.to_owned().trim() {
             right_answers += 1;
         }
+        println!();
     }
 
-    println!();
-    println!();
     println!();
     println!("--------- RESULTS ----------------");
     println!();
@@ -52,16 +50,104 @@ fn ask_questions_and_show_result(questions: Vec<Question>) -> Result<()> {
     Ok(())
 }
 
+fn add_questions() -> Result<()> {
+    println!("Note: write exit to stop entering questions");
+    println!();
+
+    let mut input = String::new();
+    loop {
+        println!("Write your question: ");
+        io::stdin().read_line(&mut input)?;
+
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        println!();
+        let mut question = Question::new(data.to_owned());
+        input.clear();
+
+        println!("Write the first awnswer: ");
+        io::stdin().read_line(&mut input)?;
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        question.add_answer(data.to_owned())?;
+        input.clear();
+        println!();
+
+        println!("Write the second awnswer: ");
+        io::stdin().read_line(&mut input)?;
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        question.add_answer(data.to_owned())?;
+        input.clear();
+        println!();
+
+        println!("Write the third awnswer: ");
+        io::stdin().read_line(&mut input)?;
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        question.add_answer(data.to_owned())?;
+        input.clear();
+        println!();
+
+        println!("Write the four awnswer: ");
+        io::stdin().read_line(&mut input)?;
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        question.add_answer(data.to_owned())?;
+        input.clear();
+        println!();
+
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+
+        println!();
+        println!("What is the right answer? Write the number");
+        for (i, answer) in question.answers.iter().enumerate() {
+            println!("{}. {}", i, answer);
+        }
+        println!();
+        io::stdin().read_line(&mut input)?;
+        let data = input.trim();
+
+        if data == "exit" {
+            break;
+        }
+        question.set_right_answer(data.to_owned().parse::<u8>()?)?;
+        println!();
+
+        
+    }
+    Ok(())
+}
+
 fn main() {
     let cli = Args::parse();
 
     match &cli.command {
         Some(Commands::QuestionEntering) => {
-            println!("Printing question");
+            let _ = add_questions();
         }
         Some(Commands::Quiz) => {
             let questions = get_questions();
-            ask_questions_and_show_result(questions);
+            ask_questions_and_show_result(questions).unwrap();
         }
         None => {
             panic!("You must give a valid mode")
