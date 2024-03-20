@@ -2,7 +2,7 @@ use std::io::{self};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use quizzer::{get_questions, model::Question};
+use quizzer::{file_manager::{self, FileManager}, model::Question};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -50,7 +50,7 @@ fn ask_questions_and_show_result(questions: Vec<Question>) -> Result<()> {
     Ok(())
 }
 
-fn add_questions() -> Result<()> {
+fn add_questions(file_manager: &FileManager) -> Result<()> {
     println!("Note: write exit to stop entering questions");
     println!();
 
@@ -131,22 +131,22 @@ fn add_questions() -> Result<()> {
             break;
         }
         question.set_right_answer(data.to_owned().parse::<u8>()?)?;
+        file_manager.save(question);
         println!();
-
-        
     }
     Ok(())
 }
 
 fn main() {
     let cli = Args::parse();
+    let file_manager = FileManager::new();
 
     match &cli.command {
         Some(Commands::QuestionEntering) => {
             let _ = add_questions();
         }
         Some(Commands::Quiz) => {
-            let questions = get_questions();
+            let questions = file_manager.get_questions().unwrap();
             ask_questions_and_show_result(questions).unwrap();
         }
         None => {
