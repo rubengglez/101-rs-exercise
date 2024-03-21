@@ -2,7 +2,10 @@ use std::io::{self};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use quizzer::{file_manager::{self, FileManager}, model::Question};
+use quizzer::{
+    file_manager::{self, FileManager},
+    model::Question,
+};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -51,6 +54,7 @@ fn ask_questions_and_show_result(questions: Vec<Question>) -> Result<()> {
 }
 
 fn add_questions(file_manager: &FileManager) -> Result<()> {
+    let mut questions: Vec<Question> = Vec::new();
     println!("Note: write exit to stop entering questions");
     println!();
 
@@ -131,23 +135,26 @@ fn add_questions(file_manager: &FileManager) -> Result<()> {
             break;
         }
         question.set_right_answer(data.to_owned().parse::<u8>()?)?;
-        file_manager.save(question);
+        questions.push(question);
+        file_manager.save(&questions)?;
+        input.clear();
         println!();
     }
     Ok(())
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Args::parse();
     let file_manager = FileManager::new();
 
     match &cli.command {
-        Some(Commands::QuestionEntering) => {
-            let _ = add_questions();
-        }
+        Some(Commands::QuestionEntering) => Ok({
+            add_questions(&file_manager)?;
+        })
         Some(Commands::Quiz) => {
-            let questions = file_manager.get_questions().unwrap();
-            ask_questions_and_show_result(questions).unwrap();
+            let questions = file_manager.get_questions()?;
+            ask_questions_and_show_result(questions)?;
+            Ok(())
         }
         None => {
             panic!("You must give a valid mode")

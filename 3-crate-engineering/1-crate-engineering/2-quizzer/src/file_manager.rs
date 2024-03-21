@@ -15,7 +15,7 @@ impl FileManager {
         FileManager {}
     }
 
-    pub fn save(&self, questions: Vec<Question>) -> Result<()> {
+    pub fn save(&self, questions: &Vec<Question>) -> Result<()> {
         let json_string = serde_json::to_string(&questions)?;
 
         self.store(&json_string)
